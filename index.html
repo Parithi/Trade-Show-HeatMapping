@@ -19,6 +19,34 @@
         <div id="content">
             <div id="stage"></div>
         </div>
+        <div id="timeline-area" class="fixed">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+                <td class="txtcenter time dgreybg"> 6 </td>
+                <td class="txtcenter time dgreybg"> 7 </td>
+                <td class="txtcenter time dgreybg"> 8 </td>
+                <td class="txtcenter time dgreybg"> 9 </td>
+                <td class="txtcenter time dgreybg"> 10 </td>
+                <td class="txtcenter time dgreybg"> 11 </td>
+                <td class="txtcenter time dgreybg"> 12 </td>
+                <td class="txtcenter time dgreybg"> 1 </td>
+                <td class="txtcenter time dgreybg"> 2 </td>
+                <td class="txtcenter time dgreybg"> 3</td>
+                <td class="txtcenter time dgreybg"> 4 </td>
+                <td class="txtcenter time dgreybg"> 5 </td>
+                <td class="txtcenter time dgreybg"> 6 </td>
+            </tr>
+        </table>
+        <table width="100%" border="0" cellspacing="0" cellpadding="0">
+            <tbody>
+            <tr>
+                <td class="txtcenter date greybg"> November 22 </td>
+                <td class="txtcenter date greybg"> November 24 </td>
+                <td class="txtcenter date greybg"> November 25 </td>
+            </tr>
+            </tbody>
+        </table>
+        </div>
     </body>
     <script>
         // Variables
@@ -27,14 +55,14 @@
         var renderer;
 
         // CONSTANTS
-        var MARGIN_TOP = -500;
+        var MARGIN_TOP = - 650;
         var MAP_JSON_URL = "https://www.compusystems.com/mobile/935/maps/DynamicMapsJson.json";
         
         // Setting up empty array for the heatmapping data
         var heatmapData = [];
         
         // Setting up PIXI renderer canvas to draw the booths on
-        renderer = PIXI.autoDetectRenderer(1000, 900);
+        renderer = PIXI.autoDetectRenderer(1000, 500);
         renderer.backgroundColor = 0xffffff; // Setting a white background
         
         // get the 'stage' div object and add the renderer to it

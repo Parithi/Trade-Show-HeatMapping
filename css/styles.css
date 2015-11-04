@@ -33,3 +33,36 @@ body {
 .padd30 {
 	padding : 30px;
 }
+
+.txtcenter{
+  text-align: center;
+  vertical-align: middle;
+}
+
+.date {
+	padding: 10px;
+	border-right: 1px solid #dddddd;
+}
+
+.time {
+	padding: 10px;
+	border-right: 1px solid #dddddd;
+}
+
+
+.dgreybg {
+	background: #bbbbbb;
+}
+
+.greybg {
+	background: #eeeeee;
+}
+
+.fixed {
+	position: fixed;
+}
+
+#timeline-area {
+	width:100%;
+	bottom: 0px;
+}
