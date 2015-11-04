@@ -1,0 +1,124 @@
+<html>
+    <head>
+        <script type="text/javascript" src="js/heatmap.js"></script>
+        <script type="text/javascript" src="js/jquery.js"></script>
+        <script type="text/javascript" src="js/pixi.js"></script>
+        <title>Compusystems - Heatmapping</title>
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        </style>
+    </head>
+    <body>
+        <div id="header">
+            <div class="left padd30">
+                Heatmapping - Expo Hall
+            </div>
+            <div class="right padd30">
+                GreenBuild 2015
+            </div>
+        </div>
+        <div id="content">
+            <div id="stage"></div>
+        </div>
+    </body>
+    <script>
+        // Variables
+        var hallName = "Expo Hall";
+        var stage;
+        var renderer;
+
+        // CONSTANTS
+        var MARGIN_TOP = -500;
+        var MAP_JSON_URL = "https://www.compusystems.com/mobile/935/maps/DynamicMapsJson.json";
+        
+        // Setting up empty array for the heatmapping data
+        var heatmapData = [];
+        
+        // Setting up PIXI renderer canvas to draw the booths on
+        renderer = PIXI.autoDetectRenderer(1000, 900);
+        renderer.backgroundColor = 0xffffff; // Setting a white background
+        
+        // get the 'stage' div object and add the renderer to it
+        document.getElementById("stage").appendChild(renderer.view);
+        
+        // Setting up renderer to draw the heatmapping data
+        var heatmap = h337.create({
+          container: document.getElementById("stage")
+        });
+        
+        // Setup the container to draw the graphics
+        stage = new PIXI.Container(0x66FF33);
+        
+        // When document is ready, let's start the web action and the renderer
+        $(document).ready(function(){  
+            PIXI.loader.add("map.jpg").load(startDrawing);
+        })
+        
+        function startDrawing() {
+        
+            var mapImage = new PIXI.Sprite(
+                PIXI.loader.resources["map.jpg"].texture
+            );
+            
+            mapImage.y = MARGIN_TOP;
+            
+            //Add the mapImage to the stage
+            stage.addChild(mapImage);
+            
+            drawBooths();
+
+            // Example data for the heatmap
+            heatmap.setData({
+                max: 5,
+                data: [{ x: 300, y: 300, value: 1},{ x: 600, y: 400, value: 3}, { x: 600, y: 200, value: 6}]
+            });
+        
+            //Render the stage   
+            renderer.render(stage);
+        }
+        
+        function drawBooths(){
+            // Run an ajax call to the MAPS JSON to get the booth data
+            $.get("https://www.compusystems.com/mobile/935/maps/DynamicMapsJson.json", function (data){                 
+                
+                // Iterate through the JSON data based on the content length
+                var length  = data[hallName].length;
+                                
+                for (var i=0;i < length; i++){
+        
+                    // Get the number of corners for the booth
+                    var cor_length = data[hallName][i].CORNERS.length;
+        
+                    var booth = new PIXI.Graphics();
+                    booth.lineStyle(1, 0x999999, 1); // Set up border
+                    booth.beginFill(0xeeeeff); // Set up fill color
+        
+                    var vertices = new Array(cor_length * 2); // Setting up vertices
+                    
+                    for (var j=0,index = 0;j < cor_length; j++,index = index+2){
+                        vertices[index] = data[hallName][i].CORNERS[j].X; // Add vertices X to the array
+                        vertices[index+1] = data[hallName][i].CORNERS[j].Y; // Add vertices Y to the array
+                    }
+                    booth.drawPolygon(vertices); // Draw the booth
+        
+                    booth.endFill(); // End filling up the booth
+                    booth.x = 0;
+                    booth.y = MARGIN_TOP; // Translate the booths by -500 on the Y-axis
+        
+                    stage.addChild(booth); // Add the booth to the stage
+
+                    renderer.render(stage);
+        
+                    // var label = new PIXI.Text(
+                    //   data[hallName][i].BOOTH,
+                    //   {font: "8px verdana", fill: "black", wordWrap:true, align : 'center', wordWrapWidth:booth.width}
+                    // );
+        
+                    // label.position.set(vertices[0] + booth.width/2 - label.width/2, vertices[1]-500 + booth.height/2 - label.height/2);
+                    // stage.addChild(label);
+                }
+            
+            })
+        }
+        
+    </script>
+</html>
