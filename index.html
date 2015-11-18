@@ -30,6 +30,8 @@
     </body>
     <script>
         // Variables
+        var SCALE_MAX = 10;
+        var SCALE_MIN = 1;
         var hallName = "Expo Hall";
         var stage;
         var renderer;
@@ -113,6 +115,48 @@
             }
 
             rawFile.send(null);
+        }
+
+        var canvas = $('canvas');
+
+        //Bind event
+        canvas.bind('wheel', function (e) {
+            if (e.originalEvent.deltaY < 0) {
+                zooming(1, e.originalEvent.pageX, e.originalEvent.pageY);
+            } else {
+                zooming(-1, e.originalEvent.pageX, e.originalEvent.pageY);
+            }
+        });
+
+        function zooming(zoom, x ,y) {
+            //Current scale
+            var scale = stage.scale.x;
+
+            //Mouse position
+            var mouse = new PIXI.Point(x,y);
+
+            //Mouse position relative to DisplayObjectContainer
+            var point = stage.toLocal(mouse);
+
+            //zooming
+            if (zoom > 0) {
+                if (scale < SCALE_MAX) {
+                    scale += 0.1;
+                    
+                    //moving
+                    stage.position.set(-point.x / 7, -point.y / 7)
+                }
+            } else {
+                if (scale > SCALE_MIN) {
+                    scale -= 0.1;
+
+                    //moving
+                    stage.position.set(point.x / 7, point.y / 7)
+                }
+            }
+
+            stage.scale.set(scale, scale);
+            reRender();
         }
 
         $(".control").click(function() {
