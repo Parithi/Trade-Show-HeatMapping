@@ -17,35 +17,15 @@
             </div>
         </div>
         <div id="content">
+            <a id="zoomin" class="control" href="#">Zoom in</a>
+            <a id="zoomout" class="control" href="#">Zoom out</a>
+            <a id="panleft" class="control" href="#">Pan Left</a>             
+            
+            <a id="panup" class="control" href="#">Pan Up</a>             
+            <a id="pandown" class="control" href="#">Pan Down</a>             
+            
+            <a id="panright" class="control" href="#">Pan Right</a>             
             <div id="stage"></div>
-        </div>
-        <div id="timeline-area" class="fixed">
-        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-        <tr>
-                <td class="txtcenter time dgreybg"> 6 </td>
-                <td class="txtcenter time dgreybg"> 7 </td>
-                <td class="txtcenter time dgreybg"> 8 </td>
-                <td class="txtcenter time dgreybg"> 9 </td>
-                <td class="txtcenter time dgreybg"> 10 </td>
-                <td class="txtcenter time dgreybg"> 11 </td>
-                <td class="txtcenter time dgreybg"> 12 </td>
-                <td class="txtcenter time dgreybg"> 1 </td>
-                <td class="txtcenter time dgreybg"> 2 </td>
-                <td class="txtcenter time dgreybg"> 3</td>
-                <td class="txtcenter time dgreybg"> 4 </td>
-                <td class="txtcenter time dgreybg"> 5 </td>
-                <td class="txtcenter time dgreybg"> 6 </td>
-            </tr>
-        </table>
-        <table width="100%" border="0" cellspacing="0" cellpadding="0">
-            <tbody>
-            <tr>
-                <td class="txtcenter date greybg"> November 22 </td>
-                <td class="txtcenter date greybg"> November 24 </td>
-                <td class="txtcenter date greybg"> November 25 </td>
-            </tr>
-            </tbody>
-        </table>
         </div>
     </body>
     <script>
@@ -55,14 +35,14 @@
         var renderer;
 
         // CONSTANTS
-        var MARGIN_TOP = - 650;
+        var MARGIN_TOP = -500;
         var MAP_JSON_URL = "https://www.compusystems.com/mobile/935/maps/DynamicMapsJson.json";
         
         // Setting up empty array for the heatmapping data
         var heatmapData = [];
         
         // Setting up PIXI renderer canvas to draw the booths on
-        renderer = PIXI.autoDetectRenderer(1000, 500);
+        renderer = PIXI.autoDetectRenderer(1000, 900);
         renderer.backgroundColor = 0xffffff; // Setting a white background
         
         // get the 'stage' div object and add the renderer to it
@@ -75,6 +55,17 @@
         
         // Setup the container to draw the graphics
         stage = new PIXI.Container(0x66FF33);
+
+        stage.interactive = true;
+        stage.buttonMode = true;
+        stage.defaultCursor = "move";
+
+        stage.scale.x = 1;
+        stage.scale.y = 1;
+
+        stage.position.x = 0;
+        stage.position.y = 0;
+    
         
         // When document is ready, let's start the web action and the renderer
         $(document).ready(function(){  
@@ -93,7 +84,8 @@
             stage.addChild(mapImage);
             
             drawBooths();
-
+            // readJsonFile();
+            
             // Example data for the heatmap
             heatmap.setData({
                 max: 5,
@@ -101,6 +93,84 @@
             });
         
             //Render the stage   
+            renderer.render(stage);
+        }
+        
+        function readJsonFile()
+        {
+            var rawFile = new XMLHttpRequest();
+            rawFile.open("GET", "heatmap.json", true);
+            rawFile.onreadystatechange = function ()
+            {
+                if(rawFile.readyState === 4)
+                {
+                	 if(rawFile.status === 200 || rawFile.status == 0)
+                     {
+                         var heatmapJson = rawFile.responseText;
+                         alert(heatmapJson);
+                     }
+                }
+            }
+
+            rawFile.send(null);
+        }
+
+        $(".control").click(function() {
+          switch($(this).attr('id')){
+            case "zoomin":
+                zoomIn();
+                break;
+            case "zoomout":
+                zoomOut();
+                break;
+            case "panright":
+                panRight();
+                break;
+            case "panleft":
+                panLeft();
+                break;
+            case "panup":
+                panUp();
+                break;
+            case "pandown":
+                panDown();
+                break;
+          }
+        });
+
+        function zoomIn(){
+            stage.scale.x += 0.5;
+            stage.scale.y += 0.5;
+            reRender();
+        }
+
+        function zoomOut(){
+            stage.scale.x -= 0.5;
+            stage.scale.y -= 0.5;
+            reRender();
+        }
+
+        function panLeft(){
+            stage.position.x -= 10;
+            reRender();
+        }
+
+        function panRight(){
+            stage.position.x += 10; 
+            reRender();  
+        }
+
+        function panUp(){
+            stage.position.y -= 10;
+            reRender();
+        }
+
+        function panDown(){
+            stage.position.y += 10; 
+            reRender();  
+        }
+
+        function reRender(){
             renderer.render(stage);
         }
         
@@ -134,15 +204,17 @@
         
                     stage.addChild(booth); // Add the booth to the stage
 
-                    renderer.render(stage);
         
                     // var label = new PIXI.Text(
                     //   data[hallName][i].BOOTH,
-                    //   {font: "8px verdana", fill: "black", wordWrap:true, align : 'center', wordWrapWidth:booth.width}
+                    //   {font: "12px verdana", fill: "black", wordWrap:true, align : 'center', wordWrapWidth:booth.width}
                     // );
         
                     // label.position.set(vertices[0] + booth.width/2 - label.width/2, vertices[1]-500 + booth.height/2 - label.height/2);
                     // stage.addChild(label);
+
+                    renderer.render(stage);
+
                 }
             
             })

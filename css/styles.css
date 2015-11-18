@@ -10,10 +10,10 @@ body {
 }
 
 #header {
-	border-bottom: 1px solid #dddddd;
+	border-bottom: 1px solid #aaaaff;
 	font-size: 18px;
 	height: 80px;
-	background: #eeeeee;
+	background: #eeeeff;
 }
 
 #content {
@@ -49,6 +49,14 @@ body {
 	border-right: 1px solid #dddddd;
 }
 
+
+.dbluebg {
+	background: #bbbbdd;
+}
+
+.bluebg {
+	background: #eeeeff;
+}
 
 .dgreybg {
 	background: #bbbbbb;
