@@ -9,17 +9,22 @@ body {
 	font-family: 'Varela Round', sans-serif;
 }
 
+#exhibitorList{
+	background: #FFFFFF;
+}
+
 #header {
 	border-bottom: 1px solid #aaaaff;
 	font-size: 18px;
 	height: 80px;
+	position: fixed;
+	width: 100%;
 	background: #eeeeff;
 }
 
 #content {
-	width: 1000px;
-	margin: 0 auto;
-	margin-top: 30px;
+	width:100%;
+	height: 100%;
 }
 
 .left{
