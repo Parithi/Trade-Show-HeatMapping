@@ -1,0 +1,201 @@
+<html>
+    <head>
+        <script type="text/javascript" src="js/heatmap.js"></script>
+        <script type="text/javascript" src="js/jquery.js"></script>
+        <script type="text/javascript" src="js/d3.min.js"></script>
+        <title>Compusystems - Heatmapping</title>
+        <link rel="stylesheet" type="text/css" href="css/styles.css">
+        </style>
+    </head>
+    <body>
+        <div id="header">
+            <div class="left padd30">
+                Heatmapping - Expo Hall
+            </div>
+            <div class="right padd30">
+                GreenBuild 2015
+            </div>
+        </div>
+        <div id="content">
+            <div id="stage"></div>
+        </div>
+    </body>
+    <script>
+
+    var margin = {top: -5, right: -5, bottom: -5, left: -5},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+    var zoom = d3.behavior.zoom()
+    .scaleExtent([1, 10])
+    .on("zoom", zoomed);
+
+    var drag = d3.behavior.drag()
+    .origin(function(d) { return d; })
+    .on("dragstart", dragstarted)
+    .on("drag", dragged)
+    .on("dragend", dragended);
+
+    var svgContainer = d3.select("body").append("svg").attr("width", 1000).attr("height", 1000).append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
+    .call(zoom);;
+
+var lineData = [ { "x": 1,   "y": 5},  { "x": 20,  "y": 20},
+                { "x": 40,  "y": 10}, { "x": 60,  "y": 40},
+                 { "x": 80,  "y": 5},  { "x": 100, "y": 60}];
+
+var lineFunction    =  d3.svg.line()
+                         .x(function(d) { return d.X; })
+                         .y(function(d) { return d.Y; })
+                         .interpolate("linear");
+
+
+
+
+        // Variables
+        var hallName = "Expo Hall";
+
+
+        // CONSTANTS
+        var MARGIN_TOP = -500;
+        var MAP_JSON_URL = "https://www.compusystems.com/mobile/935/maps/DynamicMapsJson.json";
+        
+        // Setting up empty array for the heatmapping data
+        var heatmapData = [];
+        
+        
+        // Setting up renderer to draw the heatmapping data
+        var heatmap = h337.create({
+          container: document.getElementById("stage")
+        });
+        
+        
+        // When document is ready, let's start the web action and the renderer
+        $(document).ready(function(){ 
+        startDrawing(); 
+        })
+        
+        function startDrawing() {
+
+                            
+            drawBooths();
+            // readJsonFile();
+            
+            // Example data for the heatmap
+            heatmap.setData({
+                max: 5,
+                data: [{ x: 300, y: 300, value: 1},{ x: 600, y: 400, value: 3}, { x: 600, y: 200, value: 6}]
+            });
+        }
+        
+        function readJsonFile()
+        {
+            var rawFile = new XMLHttpRequest();
+            rawFile.open("GET", "heatmap.json", true);
+            rawFile.onreadystatechange = function ()
+            {
+                if(rawFile.readyState === 4)
+                {
+                	 if(rawFile.status === 200 || rawFile.status == 0)
+                     {
+                         var heatmapJson = rawFile.responseText;
+                         alert(heatmapJson);
+                     }
+                }
+            }
+
+            rawFile.send(null);
+        }
+        
+        function drawBooths(){
+            // Run an ajax call to the MAPS JSON to get the booth data
+            $.get("https://www.compusystems.com/mobile/935/maps/DynamicMapsJson.json", function (data){                 
+                
+                // Iterate through the JSON data based on the content length
+                var length  = data[hallName].length;
+                                
+                for (var i=0;i < length; i++){
+        
+                    // Get the number of corners for the booth
+                    var cor_length = data[hallName][i].CORNERS.length;
+        
+        
+                    var vertices = new Array(cor_length * 2); // Setting up vertices
+                    
+                    for (var j=0,index = 0;j < cor_length; j++,index = index+2){
+                        vertices[index] = data[hallName][i].CORNERS[j].X; // Add vertices X to the array
+                        vertices[index+1] = data[hallName][i].CORNERS[j].Y; // Add vertices Y to the array
+                    }
+
+                        var lineGraph = svgContainer.append("polygon")
+                        .attr("stroke", "#aaaaee")
+                        .attr("stroke-width", 0.2)
+                        .attr("fill", "#eeeeff")
+                        .attr("points", vertices);
+
+                        var lineLabel = svgContainer.append("text")         // append text
+                            .style("fill", "black")
+                            .attr("x", (vertices[0]+vertices[2])/2)           // set x position of left side of text
+                            .attr("y", (vertices[1]+vertices[3])/2)           // set y position of bottom of text
+                            .attr("text-anchor", "middle")  // set anchor y justification 
+                            .text(data[hallName][i].BOOTH)
+                            .style("font-size", "2px")
+                            .each(getSize)
+                            .style("font-size", function(d) { return d + "px"; }); 
+                    
+
+                }
+            
+            })
+        }
+
+        function wrap(text, width) {
+          text.each(function() {
+            var text = d3.select(this),
+                words = text.text().split(/\s+/).reverse(),
+                word,
+                line = [],
+                lineNumber = 0,
+                lineHeight = 1.1, // ems
+                y = text.attr("y"),
+                dy = parseFloat(text.attr("dy")),
+                tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+            while (word = words.pop()) {
+              line.push(word);
+              tspan.text(line.join(" "));
+              if (tspan.node().getComputedTextLength() > width) {
+                line.pop();
+                tspan.text(line.join(" "));
+                line = [word];
+                tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+              }
+            }
+          });
+        }
+
+        function getSize(d) {
+            var bbox = this.getBBox(),
+            cbbox = this.parentNode.getBBox(),
+            scale = Math.min(cbbox.width/bbox.width, cbbox.height/bbox.height);
+            d = scale;
+}
+
+function zoomed() {
+  svgContainer.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+}
+
+function dragstarted(d) {
+  d3.event.sourceEvent.stopPropagation();
+  d3.select(this).classed("dragging", true);
+}
+
+function dragged(d) {
+  d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+}
+
+function dragended(d) {
+  d3.select(this).classed("dragging", false);
+}
+        
+    </script>
+</html>

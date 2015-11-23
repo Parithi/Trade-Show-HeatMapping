@@ -1,224 +1,298 @@
 <html>
-    <head>
-        <script type="text/javascript" src="js/heatmap.js"></script>
-        <script type="text/javascript" src="js/jquery.js"></script>
-        <script type="text/javascript" src="js/pixi.js"></script>
-        <title>Compusystems - Heatmapping</title>
-        <link rel="stylesheet" type="text/css" href="css/styles.css">
-        </style>
-    </head>
-    <body>
-        <div id="header">
-            <div class="left padd30">
-                Heatmapping - Expo Hall
-            </div>
-            <div class="right padd30">
-                GreenBuild 2015
-            </div>
+
+<head>
+    <script type="text/javascript" src="js/heatmap.js"></script>
+    <script type="text/javascript" src="js/jquery.js"></script>
+    <script type="text/javascript" src="js/d3.min.js"></script>
+
+    <title>Compusystems - Heatmapping</title>
+    <link rel="stylesheet" type="text/css" href="css/styles.css">
+    </style>
+</head>
+
+<body>
+    <div id="header">
+        <div class="left padd30">
+            Heatmapping - Expo Hall
         </div>
-        <div id="content">
-            <a id="zoomin" class="control" href="#">Zoom in</a>
-            <a id="zoomout" class="control" href="#">Zoom out</a>
-            <a id="panleft" class="control" href="#">Pan Left</a>             
-            
-            <a id="panup" class="control" href="#">Pan Up</a>             
-            <a id="pandown" class="control" href="#">Pan Down</a>             
-            
-            <a id="panright" class="control" href="#">Pan Right</a>             
-            <div id="stage"></div>
+        <div class="right padd30">
+            GreenBuild 2015
         </div>
-    </body>
-    <script>
-        // Variables
-        var hallName = "Expo Hall";
-        var stage;
-        var renderer;
+    </div>
+    <div id="content">
+        <div id="stage"></div>
+        <div id="exhibitorList"></div>
+    </div>
+    <div id="footer">
+        <table id="showTimeTable" class="fullTable">
+        </table>
+        <table id="showDaysTable" class="fullTable">
+        </table>
+    </div>
+</body>
+<script>
+    var hallName = "Expo Hall";
+    var currentDay = 0;
+    var currentHour = 0;
 
-        // CONSTANTS
-        var MARGIN_TOP = -500;
-        var MAP_JSON_URL = "https://www.compusystems.com/mobile/935/maps/DynamicMapsJson.json";
-        
-        // Setting up empty array for the heatmapping data
-        var heatmapData = [];
-        
-        // Setting up PIXI renderer canvas to draw the booths on
-        renderer = PIXI.autoDetectRenderer(1000, 900);
-        renderer.backgroundColor = 0xffffff; // Setting a white background
-        
-        // get the 'stage' div object and add the renderer to it
-        document.getElementById("stage").appendChild(renderer.view);
-        
-        // Setting up renderer to draw the heatmapping data
-        var heatmap = h337.create({
-          container: document.getElementById("stage")
-        });
-        
-        // Setup the container to draw the graphics
-        stage = new PIXI.Container(0x66FF33);
 
-        stage.interactive = true;
-        stage.buttonMode = true;
-        stage.defaultCursor = "move";
 
-        stage.scale.x = 1;
-        stage.scale.y = 1;
+    var margin = {
+            top: -5,
+            right: -5,
+            bottom: -5,
+            left: -5
+        },
+        width = 1000 - margin.left - margin.right,
+        height = 1000 - margin.top - margin.bottom;
 
-        stage.position.x = 0;
-        stage.position.y = 0;
-    
-        
-        // When document is ready, let's start the web action and the renderer
-        $(document).ready(function(){  
-            PIXI.loader.add("map.jpg").load(startDrawing);
+    var zoom = d3.behavior.zoom()
+        .scaleExtent([1, 15])
+        .on("zoom", zoomed);
+
+    var drag = d3.behavior.drag()
+        .origin(function(d) {
+            return d;
         })
-        
-        function startDrawing() {
-        
-            var mapImage = new PIXI.Sprite(
-                PIXI.loader.resources["map.jpg"].texture
-            );
-            
-            mapImage.y = MARGIN_TOP;
-            
-            //Add the mapImage to the stage
-            stage.addChild(mapImage);
-            
-            drawBooths();
-            // readJsonFile();
-            
-            // Example data for the heatmap
-            heatmap.setData({
-                max: 5,
-                data: [{ x: 300, y: 300, value: 1},{ x: 600, y: 400, value: 3}, { x: 600, y: 200, value: 6}]
-            });
-        
-            //Render the stage   
-            renderer.render(stage);
-        }
-        
-        function readJsonFile()
-        {
-            var rawFile = new XMLHttpRequest();
-            rawFile.open("GET", "heatmap.json", true);
-            rawFile.onreadystatechange = function ()
-            {
-                if(rawFile.readyState === 4)
-                {
-                	 if(rawFile.status === 200 || rawFile.status == 0)
-                     {
-                         var heatmapJson = rawFile.responseText;
-                         alert(heatmapJson);
-                     }
+        .on("dragstart", dragstarted)
+        .on("drag", dragged)
+        .on("dragend", dragended);
+
+    var svg = d3.select("#stage").append("svg")
+        .attr("width", "100%")
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("id", "mapContainer")
+        // .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
+        .attr("transform", "translate(200,-500)")
+        .call(zoom);
+
+    var rect = svg.append("rect")
+        .attr("width", width)
+        .attr("height", height)
+        .style("fill", "none")
+        .style("pointer-events", "all");
+
+    var container = svg.append("g");
+
+    function dottype(d) {
+        d.x = +d.x;
+        d.y = +d.y;
+        return d;
+    }
+
+    function zoomed() {
+        container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+    }
+
+    function dragstarted(d) {
+        d3.event.sourceEvent.stopPropagation();
+        d3.select(this).classed("dragging", true);
+    }
+
+    function dragged(d) {
+        d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+    }
+
+    function dragended(d) {
+        d3.select(this).classed("dragging", false);
+    }
+
+    generateDateline();
+
+    function drawBooths() {
+        // Run an ajax call to the MAPS JSON to get the booth data
+        d3.json("DynamicMapsJson.json", function(error, data) {
+
+            // Iterate through the JSON data based on the content length
+            var length = data[hallName].length;
+
+
+            var lineGraph = container.append("image")
+                .attr("xlink:href", "map.jpg")
+                .attr("id", "mapImage")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("width", 1000)
+                .attr("height", 1500);
+
+            for (var i = 0; i < length; i++) {
+                var cor_length = data[hallName][i].CORNERS.length;
+
+                var vertices = new Array(cor_length * 2); // Setting up vertices
+
+                for (var j = 0, index = 0; j < cor_length; j++, index = index + 2) {
+                    vertices[index] = data[hallName][i].CORNERS[j].X; // Add vertices X to the array
+                    vertices[index + 1] = (data[hallName][i].CORNERS[j].Y); // Add vertices Y to the array
                 }
+
+                var lineGraph = container.append("polygon")
+                    .attr("stroke", "#aaaaee")
+                    .attr("stroke-width", 0.1)
+                    .attr("fill", "#eeeeff")
+                    .attr("points", vertices);
+
             }
 
-            rawFile.send(null);
-        }
+            generateHeatMap();
 
-        $(".control").click(function() {
-          switch($(this).attr('id')){
-            case "zoomin":
-                zoomIn();
-                break;
-            case "zoomout":
-                zoomOut();
-                break;
-            case "panright":
-                panRight();
-                break;
-            case "panleft":
-                panLeft();
-                break;
-            case "panup":
-                panUp();
-                break;
-            case "pandown":
-                panDown();
-                break;
-          }
-        });
 
-        function zoomIn(){
-            stage.scale.x += 0.5;
-            stage.scale.y += 0.5;
-            reRender();
-        }
+            for (var i = 0; i < length; i++) {
 
-        function zoomOut(){
-            stage.scale.x -= 0.5;
-            stage.scale.y -= 0.5;
-            reRender();
-        }
+                var minX, minY;
+                var maxX, maxY;
 
-        function panLeft(){
-            stage.position.x -= 10;
-            reRender();
-        }
+                for (var j = 0, index = 0; j < cor_length; j++, index = index + 2) {
 
-        function panRight(){
-            stage.position.x += 10; 
-            reRender();  
-        }
-
-        function panUp(){
-            stage.position.y -= 10;
-            reRender();
-        }
-
-        function panDown(){
-            stage.position.y += 10; 
-            reRender();  
-        }
-
-        function reRender(){
-            renderer.render(stage);
-        }
-        
-        function drawBooths(){
-            // Run an ajax call to the MAPS JSON to get the booth data
-            $.get("https://www.compusystems.com/mobile/935/maps/DynamicMapsJson.json", function (data){                 
-                
-                // Iterate through the JSON data based on the content length
-                var length  = data[hallName].length;
-                                
-                for (var i=0;i < length; i++){
-        
-                    // Get the number of corners for the booth
-                    var cor_length = data[hallName][i].CORNERS.length;
-        
-                    var booth = new PIXI.Graphics();
-                    booth.lineStyle(1, 0x999999, 1); // Set up border
-                    booth.beginFill(0xeeeeff); // Set up fill color
-        
-                    var vertices = new Array(cor_length * 2); // Setting up vertices
-                    
-                    for (var j=0,index = 0;j < cor_length; j++,index = index+2){
-                        vertices[index] = data[hallName][i].CORNERS[j].X; // Add vertices X to the array
-                        vertices[index+1] = data[hallName][i].CORNERS[j].Y; // Add vertices Y to the array
+                    if(minX == undefined || minX > data[hallName][i].CORNERS[j].X){
+                        minX = data[hallName][i].CORNERS[j].X
                     }
-                    booth.drawPolygon(vertices); // Draw the booth
-        
-                    booth.endFill(); // End filling up the booth
-                    booth.x = 0;
-                    booth.y = MARGIN_TOP; // Translate the booths by -500 on the Y-axis
-        
-                    stage.addChild(booth); // Add the booth to the stage
-
-        
-                    // var label = new PIXI.Text(
-                    //   data[hallName][i].BOOTH,
-                    //   {font: "12px verdana", fill: "black", wordWrap:true, align : 'center', wordWrapWidth:booth.width}
-                    // );
-        
-                    // label.position.set(vertices[0] + booth.width/2 - label.width/2, vertices[1]-500 + booth.height/2 - label.height/2);
-                    // stage.addChild(label);
-
-                    renderer.render(stage);
-
+                    if(minY == undefined || minY > data[hallName][i].CORNERS[j].Y){
+                        minY = data[hallName][i].CORNERS[j].Y
+                    }
+                    if(maxX == undefined || maxX < data[hallName][i].CORNERS[j].X){
+                        maxX = data[hallName][i].CORNERS[j].X
+                    }
+                    if(maxY == undefined || maxY < data[hallName][i].CORNERS[j].Y){
+                        maxY = data[hallName][i].CORNERS[j].Y
+                    }
+                    
                 }
-            
-            })
+
+                var boothTitle = 'Booth:' + data[hallName][i].BOOTH + " " + data[hallName][i].COMPANY;
+                text = container.append('foreignObject')
+                    .attr('x', minX)
+                    .attr('y', function(d){ if(boothTitle.length > (maxX-minX)) return minY; else return (minY+maxY)/2; })
+                    .attr('width', Math.abs(maxX - minX))
+                    .attr('height', Math.abs(maxY - minY))
+                    .style('text-align', "center")
+                    .attr('font-size','0.8px')
+                    .text(boothTitle);
+
+
+                minX = undefined;
+                minY = undefined;
+                maxX = undefined;
+                maxY = undefined;
+
+            }
+
+
+
+        })
+    }
+
+
+    $(document).ready(function() {
+        startDrawing();
+    });
+
+    function startDrawing() {
+        drawBooths();
+    }
+
+    function getSize(d) {
+        var bbox = this.getBBox(),
+            cbbox = this.parentNode.getBBox(),
+            scale = Math.min(cbbox.width / bbox.width, cbbox.height / bbox.height);
+        d = scale;
+        console.log((d / 10) + "px");
+        // d3.select(this).style("font-size",d + "px");
+    }
+
+
+    function setDate(day,className,value){
+        currentDay = day;
+        generateDateline();
+    }
+
+    function setHour(hour,className,value){
+        currentHour = hour;
+        generateHeatMap();
+        setColorToId(className,value);
+    }
+
+    function setColorToId(className,value){
+        d3.selectAll("." +className).style("background",""); 
+        d3.select("#" + className + value).style("background","#00FFFF"); 
+    }
+
+    function generateDateline() {
+        d3.select("#showDaysTable").html("");
+        d3.json("heatmap.json", function(error, json) {
+            if (error) return console.warn(error);
+            var showDays = json.showDays;
+            showDays.forEach(function(d) {
+                var startDay = new Date(d.startDateTime);
+                var format = d3.time.format("%B %d");
+                d3.select("#showDaysTable")
+                    .append("td")
+                    .attr("id","day"+startDay.getDay())
+                    .classed("day",true)
+                    .attr("onClick","setDate(" + startDay.getDay() + ",'day',"+startDay.getDay()+")")
+                    .append("span")
+                    .html(format(startDay));
+
+                if(startDay.getDay()==currentDay){
+                    generateTimeLine(d.startDateTime, d.endDateTime);
+                    setColorToId("day",startDay.getDay());
+                }
+            });
+        });
+    }
+
+    function generateTimeLine(startTime, endTime){
+        var startHour = new Date(startTime).getHours();
+        var endHour = new Date(endTime).getHours();
+
+        if(endHour < startHour){
+            endHour = 24;
         }
-        
-    </script>
+
+        d3.select("#showTimeTable").html("");
+        for (var i = startHour; i <= endHour; i++) {
+            d3.select("#showTimeTable")
+                .append("td")
+                .attr("id","time"+i)
+                .classed("time",true)
+                .attr("onClick","setHour(" + i + ",'time',"+i+")")
+                .append("span")
+                .html(i);
+        }
+    }
+    function generateHeatMap(){
+
+        d3.select("#heatMap").html("");
+
+        d3.json("heatmap.json", function(error, json) {
+            if (error) return console.warn(error);
+            var heatMapData = json.heatMap;
+
+            heatMapData.forEach(function(d){
+                var visitStartTime = new Date(d.visitStartTime);
+                var visitEndTime = new Date(d.visitEndTime);
+                var coordinates = d.coordinates[0];
+
+                if(visitStartTime.getHours() >= currentHour && visitStartTime.getHours() < currentHour+1 && visitStartTime.getDay() == currentDay){
+                    container.append("g")
+                    .attr("id","heatMap")
+                    .append("circle")
+                    .attr("cx", coordinates.X)
+                    .attr("cy", coordinates.Y)
+                    .attr("r", coordinates.visits)
+                    .attr("fill-opacity","0.4")
+                    .style("fill","red");
+                    // console.log("currentDay : " + currentDay + "currentHour : " + currentHour);
+                    // console.log("visitDay : " + visitStartTime.getDay() + "visitStartTime : " + visitStartTime.getHours());
+                    alert("drawn" + d.visitStartTime);
+                } else {
+                    // console.log("currentDay : " + currentDay + "currentHour : " + currentHour);
+                    // console.log("visitDay : " + visitStartTime.getDay() + "visitStartTime : " + visitStartTime.getHours());
+                       
+                }
+            });
+        });
+    }
+</script>
+
 </html>
