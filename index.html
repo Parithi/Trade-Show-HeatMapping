@@ -4,7 +4,6 @@
     <script type="text/javascript" src="js/heatmap.js"></script>
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/d3.min.js"></script>
-    <script src="http://www.d3plus.org/js/d3plus.js"></script>
 
     <title>Compusystems - Heatmapping</title>
     <link rel="stylesheet" type="text/css" href="css/styles.css">
@@ -33,8 +32,8 @@
 </body>
 <script>
     var hallName = "Expo Hall";
-    var numberOfDays = 0;
-    var numerOfHours = 0;
+    var currentDay = 0;
+    var currentHour = 0;
 
 
 
@@ -118,18 +117,32 @@
                 .attr("height", 1500);
 
             for (var i = 0; i < length; i++) {
-
-                var minX, minY;
-                var maxX, maxY;
-
-                // Get the number of corners for the booth
                 var cor_length = data[hallName][i].CORNERS.length;
-
 
                 var vertices = new Array(cor_length * 2); // Setting up vertices
 
                 for (var j = 0, index = 0; j < cor_length; j++, index = index + 2) {
+                    vertices[index] = data[hallName][i].CORNERS[j].X; // Add vertices X to the array
+                    vertices[index + 1] = (data[hallName][i].CORNERS[j].Y); // Add vertices Y to the array
+                }
 
+                var lineGraph = container.append("polygon")
+                    .attr("stroke", "#aaaaee")
+                    .attr("stroke-width", 0.1)
+                    .attr("fill", "#eeeeff")
+                    .attr("points", vertices);
+
+            }
+
+            generateHeatMap();
+
+
+            for (var i = 0; i < length; i++) {
+
+                var minX, minY;
+                var maxX, maxY;
+
+                for (var j = 0, index = 0; j < cor_length; j++, index = index + 2) {
 
                     if(minX == undefined || minX > data[hallName][i].CORNERS[j].X){
                         minX = data[hallName][i].CORNERS[j].X
@@ -144,33 +157,17 @@
                         maxY = data[hallName][i].CORNERS[j].Y
                     }
                     
-                    vertices[index] = data[hallName][i].CORNERS[j].X; // Add vertices X to the array
-                    vertices[index + 1] = (data[hallName][i].CORNERS[j].Y); // Add vertices Y to the array
                 }
 
-                var lineGraph = container.append("polygon")
-                    .attr("stroke", "#aaaaee")
-                    .attr("stroke-width", 0.1)
-                    .attr("fill", "#eeeeff")
-                    .attr("points", vertices);
-
-                generateHeatMap();
-
+                var boothTitle = 'Booth:' + data[hallName][i].BOOTH + " " + data[hallName][i].COMPANY;
                 text = container.append('foreignObject')
                     .attr('x', minX)
-                    .attr('y', minY)
+                    .attr('y', function(d){ if(boothTitle.length > (maxX-minX)) return minY; else return (minY+maxY)/2; })
                     .attr('width', Math.abs(maxX - minX))
                     .attr('height', Math.abs(maxY - minY))
-                    .attr('font-size','1px')
-                    .text('Booth:' + data[hallName][i].BOOTH + " " + data[hallName][i].COMPANY);
-
-                // text = container.append('foreignObject')
-                //     .attr('x', minX)
-                //     .attr('y', minY)
-                //     .attr('width', Math.abs(maxX - minX))
-                //     .attr('height', Math.abs(maxY - minY))
-                //     .append("xhtml:body")
-                //     .html('<div style="font-size:1px;padding:0.2px;line-height:1.7px">Booth:' + data[hallName][i].BOOTH + '<br/>' + data[hallName][i].COMPANY + '</div>')
+                    .style('text-align', "center")
+                    .attr('font-size','0.8px')
+                    .text(boothTitle);
 
 
                 minX = undefined;
@@ -180,6 +177,8 @@
 
             }
 
+
+
         })
     }
 
@@ -187,13 +186,6 @@
     $(document).ready(function() {
         startDrawing();
     });
-
-    function wrap(){
-        d3plus.textwrap()
-        .container(d3.select(this))
-        .resize(true)
-        .draw();
-    }
 
     function startDrawing() {
         drawBooths();
@@ -209,29 +201,42 @@
     }
 
 
-    function setDate(day){
-        numberOfDays = day;
+    function setDate(day,className,value){
+        currentDay = day;
         generateDateline();
     }
 
+    function setHour(hour,className,value){
+        currentHour = hour;
+        generateHeatMap();
+        setColorToId(className,value);
+    }
+
+    function setColorToId(className,value){
+        d3.selectAll("." +className).style("background",""); 
+        d3.select("#" + className + value).style("background","#00FFFF"); 
+    }
+
     function generateDateline() {
-        var iterationCount = 0;
         d3.select("#showDaysTable").html("");
         d3.json("heatmap.json", function(error, json) {
             if (error) return console.warn(error);
             var showDays = json.showDays;
             showDays.forEach(function(d) {
+                var startDay = new Date(d.startDateTime);
                 var format = d3.time.format("%B %d");
                 d3.select("#showDaysTable")
                     .append("td")
+                    .attr("id","day"+startDay.getDay())
+                    .classed("day",true)
+                    .attr("onClick","setDate(" + startDay.getDay() + ",'day',"+startDay.getDay()+")")
                     .append("span")
-                    .attr("onclick","setDate(" + iterationCount + ")")
-                    .html(format(new Date(d.startDateTime)));
+                    .html(format(startDay));
 
-                if(iterationCount==numberOfDays){
+                if(startDay.getDay()==currentDay){
                     generateTimeLine(d.startDateTime, d.endDateTime);
+                    setColorToId("day",startDay.getDay());
                 }
-            iterationCount++;
             });
         });
     }
@@ -248,22 +253,43 @@
         for (var i = startHour; i <= endHour; i++) {
             d3.select("#showTimeTable")
                 .append("td")
+                .attr("id","time"+i)
+                .classed("time",true)
+                .attr("onClick","setHour(" + i + ",'time',"+i+")")
+                .append("span")
                 .html(i);
         }
     }
     function generateHeatMap(){
+
+        d3.select("#heatMap").html("");
+
         d3.json("heatmap.json", function(error, json) {
             if (error) return console.warn(error);
             var heatMapData = json.heatMap;
 
             heatMapData.forEach(function(d){
+                var visitStartTime = new Date(d.visitStartTime);
+                var visitEndTime = new Date(d.visitEndTime);
                 var coordinates = d.coordinates[0];
-                container.append("circle")
-                .attr("cx", coordinates.X)
-                .attr("cy", coordinates.Y)
-                .attr("r", coordinates.visits)
-                .attr("fill-opacity","0.5")
-                .style("fill","red")
+
+                if(visitStartTime.getHours() >= currentHour && visitStartTime.getHours() < currentHour+1 && visitStartTime.getDay() == currentDay){
+                    container.append("g")
+                    .attr("id","heatMap")
+                    .append("circle")
+                    .attr("cx", coordinates.X)
+                    .attr("cy", coordinates.Y)
+                    .attr("r", coordinates.visits)
+                    .attr("fill-opacity","0.4")
+                    .style("fill","red");
+                    // console.log("currentDay : " + currentDay + "currentHour : " + currentHour);
+                    // console.log("visitDay : " + visitStartTime.getDay() + "visitStartTime : " + visitStartTime.getHours());
+                    alert("drawn" + d.visitStartTime);
+                } else {
+                    // console.log("currentDay : " + currentDay + "currentHour : " + currentHour);
+                    // console.log("visitDay : " + visitStartTime.getDay() + "visitStartTime : " + visitStartTime.getHours());
+                       
+                }
             });
         });
     }
