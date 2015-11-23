@@ -79,3 +79,23 @@ body {
 	width:100%;
 	bottom: 0px;
 }
+
+#footer{
+	width: 100%;
+	position: fixed;
+	bottom: 0px;
+	left: 0px;
+}
+
+.fullTable{
+	width: 100%;
+	border-top: 1px solid #aaaaff;
+	background: #eeeeff;
+}
+
+.fullTable td{
+	vertical-align: middle;
+	text-align: center;
+	border-right: 1px solid #aaaaff;
+	padding: 10px;
+}

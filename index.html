@@ -4,6 +4,8 @@
     <script type="text/javascript" src="js/heatmap.js"></script>
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/d3.min.js"></script>
+    <script src="http://www.d3plus.org/js/d3plus.js"></script>
+
     <title>Compusystems - Heatmapping</title>
     <link rel="stylesheet" type="text/css" href="css/styles.css">
     </style>
@@ -22,10 +24,19 @@
         <div id="stage"></div>
         <div id="exhibitorList"></div>
     </div>
+    <div id="footer">
+        <table id="showTimeTable" class="fullTable">
+        </table>
+        <table id="showDaysTable" class="fullTable">
+        </table>
+    </div>
 </body>
 <script>
+    var hallName = "Expo Hall";
+    var numberOfDays = 0;
+    var numerOfHours = 0;
 
-        var hallName = "Expo Hall";
+
 
     var margin = {
             top: -5,
@@ -52,6 +63,7 @@
         .attr("width", "100%")
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
+        .attr("id", "mapContainer")
         // .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
         .attr("transform", "translate(200,-500)")
         .call(zoom);
@@ -63,34 +75,6 @@
         .style("pointer-events", "all");
 
     var container = svg.append("g");
-
-    container.append("g")
-        .attr("class", "x axis")
-        .selectAll("line")
-        .data(d3.range(0, width, 10))
-        .enter().append("line")
-        .attr("x1", function(d) {
-            return d;
-        })
-        .attr("y1", 0)
-        .attr("x2", function(d) {
-            return d;
-        })
-        .attr("y2", height);
-
-    container.append("g")
-        .attr("class", "y axis")
-        .selectAll("line")
-        .data(d3.range(0, height, 10))
-        .enter().append("line")
-        .attr("x1", 0)
-        .attr("y1", function(d) {
-            return d;
-        })
-        .attr("x2", width)
-        .attr("y2", function(d) {
-            return d;
-        });
 
     function dottype(d) {
         d.x = +d.x;
@@ -115,110 +99,174 @@
         d3.select(this).classed("dragging", false);
     }
 
-            function drawBooths(){
-            // Run an ajax call to the MAPS JSON to get the booth data
-            $.get("https://www.compusystems.com/mobile/935/maps/DynamicMapsJson.json", function (data){                 
-                
-                // Iterate through the JSON data based on the content length
-                var length  = data[hallName].length;
+    generateDateline();
+
+    function drawBooths() {
+        // Run an ajax call to the MAPS JSON to get the booth data
+        d3.json("DynamicMapsJson.json", function(error, data) {
+
+            // Iterate through the JSON data based on the content length
+            var length = data[hallName].length;
 
 
-                var lineGraph = container.append("image")
-                                .attr("xlink:href", "map.jpg")
-                                .attr("x", 0)
-                                .attr("y", 0)
-                                .attr("width",1000)
-                                .attr("height",1500);
-                                
-                for (var i=0;i < length; i++){
-        
-                    // Get the number of corners for the booth
-                    var cor_length = data[hallName][i].CORNERS.length;
-        
-        
-                    var vertices = new Array(cor_length * 2); // Setting up vertices
-                    
-                    for (var j=0,index = 0;j < cor_length; j++,index = index+2){
-                        vertices[index] = data[hallName][i].CORNERS[j].X; // Add vertices X to the array
-                        vertices[index+1] = (data[hallName][i].CORNERS[j].Y) ; // Add vertices Y to the array
+            var lineGraph = container.append("image")
+                .attr("xlink:href", "map.jpg")
+                .attr("id", "mapImage")
+                .attr("x", 0)
+                .attr("y", 0)
+                .attr("width", 1000)
+                .attr("height", 1500);
+
+            for (var i = 0; i < length; i++) {
+
+                var minX, minY;
+                var maxX, maxY;
+
+                // Get the number of corners for the booth
+                var cor_length = data[hallName][i].CORNERS.length;
+
+
+                var vertices = new Array(cor_length * 2); // Setting up vertices
+
+                for (var j = 0, index = 0; j < cor_length; j++, index = index + 2) {
+
+
+                    if(minX == undefined || minX > data[hallName][i].CORNERS[j].X){
+                        minX = data[hallName][i].CORNERS[j].X
                     }
-
-                        var lineGraph = container.append("polygon")
-                        .attr("stroke", "#aaaaee")
-                        .attr("stroke-width", 0.1)
-                        .attr("fill", "#eeeeff")
-                        .attr("points", vertices);
-
-                        // var lineLabel = container.append("text")         // append text
-                        //     .style("fill", "black")
-                        //     .attr("x", (vertices[0]+vertices[2])/2)           // set x position of left side of text
-                        //     .attr("y", (vertices[1]+vertices[5])/2)           // set y position of bottom of text
-                        //     .attr("text-anchor", "middle")  // set anchor y justification 
-                        //     .text(data[hallName][i].BOOTH)
-                        //     .style("font-size", function(d) { return Math.min(2 * 2, (2 * 2 - 8) / this.getComputedTextLength() * 24) + "px"})
-                        //     ; 
-
-                        text = container.append('foreignObject')
-                        .attr('x', vertices[0])
-                        .attr('y', vertices[1])
-                        .attr('width', Math.abs(vertices[0]-vertices[2]))
-                        .attr('height', Math.abs(vertices[1]-vertices[5]))
-                        .append("xhtml:body")
-                        .html('<div style="font-size:1px;padding:0.2px;line-height:2px">Booth:'+ data[hallName][i].BOOTH + '<br/>' + data[hallName][i].COMPANY +'</div>')
+                    if(minY == undefined || minY > data[hallName][i].CORNERS[j].Y){
+                        minY = data[hallName][i].CORNERS[j].Y
+                    }
+                    if(maxX == undefined || maxX < data[hallName][i].CORNERS[j].X){
+                        maxX = data[hallName][i].CORNERS[j].X
+                    }
+                    if(maxY == undefined || maxY < data[hallName][i].CORNERS[j].Y){
+                        maxY = data[hallName][i].CORNERS[j].Y
+                    }
+                    
+                    vertices[index] = data[hallName][i].CORNERS[j].X; // Add vertices X to the array
+                    vertices[index + 1] = (data[hallName][i].CORNERS[j].Y); // Add vertices Y to the array
                 }
-            
-            })
-        }
+
+                var lineGraph = container.append("polygon")
+                    .attr("stroke", "#aaaaee")
+                    .attr("stroke-width", 0.1)
+                    .attr("fill", "#eeeeff")
+                    .attr("points", vertices);
+
+                generateHeatMap();
+
+                text = container.append('foreignObject')
+                    .attr('x', minX)
+                    .attr('y', minY)
+                    .attr('width', Math.abs(maxX - minX))
+                    .attr('height', Math.abs(maxY - minY))
+                    .attr('font-size','1px')
+                    .text('Booth:' + data[hallName][i].BOOTH + " " + data[hallName][i].COMPANY);
+
+                // text = container.append('foreignObject')
+                //     .attr('x', minX)
+                //     .attr('y', minY)
+                //     .attr('width', Math.abs(maxX - minX))
+                //     .attr('height', Math.abs(maxY - minY))
+                //     .append("xhtml:body")
+                //     .html('<div style="font-size:1px;padding:0.2px;line-height:1.7px">Booth:' + data[hallName][i].BOOTH + '<br/>' + data[hallName][i].COMPANY + '</div>')
 
 
-        $(document).ready(function(){ 
-            startDrawing(); 
-        });
+                minX = undefined;
+                minY = undefined;
+                maxX = undefined;
+                maxY = undefined;
 
-        function startDrawing() {
-
-                            
-            drawBooths();
-            
-        }
-
-        function getSize(d) {
-            var bbox = this.getBBox(),
-            cbbox = this.parentNode.getBBox(),
-            scale = Math.min(cbbox.width/bbox.width, cbbox.height/bbox.height);
-            d = scale;
-            console.log((d/10) + "px");
-            // d3.select(this).style("font-size",d + "px");
-        }
-
-        function wrap(text, width) {
-          text.each(function() {
-            var text = d3.select(this),
-                words = text.text().split(/\s+/).reverse(),
-                word,
-                line = [],
-                lineNumber = 0,
-                lineHeight = 1.1, // ems
-                y = text.attr("y"),
-                dy = parseFloat(text.attr("dy")),
-                tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
-            while (word = words.pop()) {
-              line.push(word);
-              tspan.text(line.join(" "));
-              if (tspan.node().getComputedTextLength() > width) {
-                line.pop();
-                tspan.text(line.join(" "));
-                line = [word];
-                tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
-              }
             }
-          });
+
+        })
+    }
+
+
+    $(document).ready(function() {
+        startDrawing();
+    });
+
+    function wrap(){
+        d3plus.textwrap()
+        .container(d3.select(this))
+        .resize(true)
+        .draw();
+    }
+
+    function startDrawing() {
+        drawBooths();
+    }
+
+    function getSize(d) {
+        var bbox = this.getBBox(),
+            cbbox = this.parentNode.getBBox(),
+            scale = Math.min(cbbox.width / bbox.width, cbbox.height / bbox.height);
+        d = scale;
+        console.log((d / 10) + "px");
+        // d3.select(this).style("font-size",d + "px");
+    }
+
+
+    function setDate(day){
+        numberOfDays = day;
+        generateDateline();
+    }
+
+    function generateDateline() {
+        var iterationCount = 0;
+        d3.select("#showDaysTable").html("");
+        d3.json("heatmap.json", function(error, json) {
+            if (error) return console.warn(error);
+            var showDays = json.showDays;
+            showDays.forEach(function(d) {
+                var format = d3.time.format("%B %d");
+                d3.select("#showDaysTable")
+                    .append("td")
+                    .append("span")
+                    .attr("onclick","setDate(" + iterationCount + ")")
+                    .html(format(new Date(d.startDateTime)));
+
+                if(iterationCount==numberOfDays){
+                    generateTimeLine(d.startDateTime, d.endDateTime);
+                }
+            iterationCount++;
+            });
+        });
+    }
+
+    function generateTimeLine(startTime, endTime){
+        var startHour = new Date(startTime).getHours();
+        var endHour = new Date(endTime).getHours();
+
+        if(endHour < startHour){
+            endHour = 24;
         }
 
-        function type(d) {
-          d.value = +d.value;
-          return d;
+        d3.select("#showTimeTable").html("");
+        for (var i = startHour; i <= endHour; i++) {
+            d3.select("#showTimeTable")
+                .append("td")
+                .html(i);
         }
+    }
+    function generateHeatMap(){
+        d3.json("heatmap.json", function(error, json) {
+            if (error) return console.warn(error);
+            var heatMapData = json.heatMap;
+
+            heatMapData.forEach(function(d){
+                var coordinates = d.coordinates[0];
+                container.append("circle")
+                .attr("cx", coordinates.X)
+                .attr("cy", coordinates.Y)
+                .attr("r", coordinates.visits)
+                .attr("fill-opacity","0.5")
+                .style("fill","red")
+            });
+        });
+    }
 </script>
 
 </html>
