@@ -1,5 +1,4 @@
 <html>
-
 <head>
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/d3.min.js"></script>
@@ -7,72 +6,85 @@
 
     <title>Compusystems - Heatmapping</title>
     <link rel="stylesheet" type="text/css" href="css/styles.css">
-    <link rel="stylesheet" type="text/css" href="css/jquery-ui.min.css">
-    </style>
 </head>
 
 <body>
-    <div id="header">
-        <div class="left padd30">
-            Heatmapping - Expo Hall
-        </div>
-        <div class="right padd30">
-            GreenBuild 2015
-        </div>
+<div id="header">
+    <div class="left padd30">
+        Heatmapping - Expo Hall
     </div>
-    <div id="content">
-        <div id="stage"></div>
-        <div id="exhibitorList"></div>
+    <div class="right padd30">
+        GreenBuild 2015
     </div>
-    <div id="footer">
-        <table id="showTimeTable" class="fullTable">
-        </table>
-        <table id="showDaysTable" class="fullTable">
-        </table>
-    </div>
+</div>
+<div id="content">
+    <div id="stage"></div>
+    <div id="exhibitorList"></div>
+</div>
+<div id="footer">
+    <table id="sliderTable" class="fulltable hidden">
+        <tr>
+            <td>
+                <div id="time-range">
+                    <p>Time Range: <span class="slider-time">Choose the Date from below to get Started. Then select Start Time</span> - <span
+                            class="slider-time2">End Time</span>
+
+                    </p>
+
+                    <div class="sliders_step1">
+                        <div id="slider-range"></div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+    <table id="showTimeTable" class="fullTable">
+    </table>
+    <table id="showDaysTable" class="fullTable">
+    </table>
+</div>
 </body>
 <script>
     var hallName = "Expo Hall";
     var currentDay = 0;
-    var currentHour = 0;
-
-
+    var currentMinTime = 0;
+    var currentMaxTime = 0;
 
     var margin = {
-            top: -5,
-            right: -5,
-            bottom: -5,
-            left: -5
-        },
-        width = 1000 - margin.left - margin.right,
-        height = 1000 - margin.top - margin.bottom;
+                top: -5,
+                right: -5,
+                bottom: -5,
+                left: -5
+            },
+            width = 1000 - margin.left - margin.right,
+            height = 1000 - margin.top - margin.bottom;
 
     var zoom = d3.behavior.zoom()
-        .scaleExtent([1, 15])
-        .on("zoom", zoomed);
+            .scaleExtent([1, 15])
+            .on("zoom", zoomed);
 
     var drag = d3.behavior.drag()
-        .origin(function(d) {
-            return d;
-        })
-        .on("dragstart", dragstarted)
-        .on("drag", dragged)
-        .on("dragend", dragended);
+            .origin(function (d) {
+                return d;
+            })
+            .on("dragstart", dragstarted)
+            .on("drag", dragged)
+            .on("dragend", dragended);
 
     var svg = d3.select("#stage").append("svg")
-        .attr("width", "100%")
-        .attr("height", height + margin.top + margin.bottom)
-        .append("g")
-        .attr("id", "mapContainer")
-        // .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
-        .attr("transform", "translate(200,-500)")
-        .call(zoom);
+            .attr("width", "100%")
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("id", "mapContainer")
+            // .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
+            .attr("transform", "translate(200,-500)")
+            .call(zoom);
 
     var rect = svg.append("rect")
-        .attr("width", width)
-        .attr("height", height)
-        .style("fill", "none")
-        .style("pointer-events", "all");
+            .attr("width", width)
+            .attr("height", height)
+            .style("fill", "none")
+            .style("pointer-events", "all");
 
     var container = svg.append("g");
 
@@ -103,19 +115,19 @@
 
     function drawBooths() {
         // Run an ajax call to the MAPS JSON to get the booth data
-        d3.json("DynamicMapsJson.json", function(error, data) {
+        d3.json("DynamicMapsJson.json", function (error, data) {
 
             // Iterate through the JSON data based on the content length
             var length = data[hallName].length;
 
 
             var lineGraph = container.append("image")
-                .attr("xlink:href", "map.jpg")
-                .attr("id", "mapImage")
-                .attr("x", 0)
-                .attr("y", 0)
-                .attr("width", 1000)
-                .attr("height", 1500);
+                    .attr("xlink:href", "map.jpg")
+                    .attr("id", "mapImage")
+                    .attr("x", 0)
+                    .attr("y", 0)
+                    .attr("width", 1000)
+                    .attr("height", 1500);
 
             for (var i = 0; i < length; i++) {
                 var cor_length = data[hallName][i].CORNERS.length;
@@ -128,10 +140,10 @@
                 }
 
                 var lineGraph = container.append("polygon")
-                    .attr("stroke", "#aaaaee")
-                    .attr("stroke-width", 0.1)
-                    .attr("fill", "#eeeeff")
-                    .attr("points", vertices);
+                        .attr("stroke", "#aaaaee")
+                        .attr("stroke-width", 0.1)
+                        .attr("fill", "#eeeeff")
+                        .attr("points", vertices);
 
             }
 
@@ -145,31 +157,33 @@
 
                 for (var j = 0, index = 0; j < cor_length; j++, index = index + 2) {
 
-                    if(minX == undefined || minX > data[hallName][i].CORNERS[j].X){
+                    if (minX == undefined || minX > data[hallName][i].CORNERS[j].X) {
                         minX = data[hallName][i].CORNERS[j].X
                     }
-                    if(minY == undefined || minY > data[hallName][i].CORNERS[j].Y){
+                    if (minY == undefined || minY > data[hallName][i].CORNERS[j].Y) {
                         minY = data[hallName][i].CORNERS[j].Y
                     }
-                    if(maxX == undefined || maxX < data[hallName][i].CORNERS[j].X){
+                    if (maxX == undefined || maxX < data[hallName][i].CORNERS[j].X) {
                         maxX = data[hallName][i].CORNERS[j].X
                     }
-                    if(maxY == undefined || maxY < data[hallName][i].CORNERS[j].Y){
+                    if (maxY == undefined || maxY < data[hallName][i].CORNERS[j].Y) {
                         maxY = data[hallName][i].CORNERS[j].Y
                     }
-                    
+
                 }
 
                 var boothTitle = 'Booth:' + data[hallName][i].BOOTH + " " + data[hallName][i].COMPANY;
                 text = container.append('foreignObject')
-                    .attr('x', minX)
-                    .attr('y', function(d){ if(boothTitle.length < (maxX-minX)*2) return (minY+maxY)/2; else return minY; })
-                    .attr('width', Math.abs(maxX - minX))
-                    .attr('height', Math.abs(maxY - minY))
-                    .style('text-align', "center")
-                    .classed('wordwrap',true)
-                    .attr('font-size','0.8px')
-                    .text(boothTitle);
+                        .attr('x', minX)
+                        .attr('y', function (d) {
+                            if (boothTitle.length < (maxX - minX) * 2) return (minY + maxY) / 2; else return minY;
+                        })
+                        .attr('width', Math.abs(maxX - minX))
+                        .attr('height', Math.abs(maxY - minY))
+                        .style('text-align', "center")
+                        .classed('wordwrap', true)
+                        .attr('font-size', '0.8px')
+                        .text(boothTitle);
 
 
                 minX = undefined;
@@ -181,7 +195,7 @@
     }
 
 
-    $(document).ready(function() {
+    $(document).ready(function () {
         startDrawing();
     });
 
@@ -190,87 +204,170 @@
     }
 
 
-    function setDate(day,className,value){
+    function setDate(day, className, value) {
         currentDay = day;
         generateDateline();
     }
 
-    function setHour(hour){
-        currentHour = hour;
-        generateHeatMap();
-    }
-
-    function setColorToId(className,value){
-        d3.selectAll("." +className).style("background",""); 
-        d3.select("#" + className + value).style("background","#00FFFF"); 
+    function setColorToId(className, value) {
+        d3.selectAll("." + className).style("background", "");
+        d3.select("#" + className + value).style("background", "#00FFFF");
     }
 
     function generateDateline() {
         d3.select("#showDaysTable").html("");
-        d3.json("heatmap.json", function(error, json) {
+
+        $("#sliderTable").show();
+
+        d3.json("heatmap.json", function (error, json) {
             if (error) return console.warn(error);
             var showDays = json.showDays;
-            showDays.forEach(function(d) {
+            var interval = json.interval;
+
+            showDays.forEach(function (d) {
                 var startDay = new Date(d.startDateTime);
                 var format = d3.time.format("%B %d");
-                d3.select("#showDaysTable")
-                    .append("td")
-                    .attr("id","day"+startDay.getDay())
-                    .classed("day",true)
-                    .attr("onClick","setDate(" + startDay.getDay() + ",'day',"+startDay.getDay()+")")
-                    .append("span")
-                    .html(format(startDay));
 
-                if(startDay.getDay()==currentDay){
-                    generateTimeLine(d.startDateTime, d.endDateTime);
-                    setColorToId("day",startDay.getDay());
+                d3.select("#showDaysTable")
+                        .append("td")
+                        .attr("id", "day" + startDay.getDay())
+                        .classed("day", true)
+                        .attr("onClick", "setDate(" + startDay.getDay() + ",'day'," + startDay.getDay() + ")")
+                        .append("span")
+                        .html(format(startDay));
+
+                if (startDay.getDay() == currentDay) {
+                    generateTimeLine(d.startDateTime, d.endDateTime,interval);
+                    setColorToId("day", startDay.getDay());
                 }
             });
         });
     }
 
-    function generateTimeLine(startTime, endTime){
-        var startHour = new Date(startTime).getHours();
-        var endHour = new Date(endTime).getHours();
+    function generateTimeLine(startTime, endTime, interval) {
+        console.log("Generated Timeline");
 
-        if(endHour < startHour){
-            endHour = 24;
+        // d3.select("#showTimeTable").html("<td><span id='startTime'>" + startHour + "</span></td><td><input type='range' oninput='setHour(this.value)' onchange='setHour(this.value)' step='1' id='timeRange' min='"+ startHour + "'' max='" + endHour +"'></td><td><span id='endTime'>" + endHour + "</span></td>");
+
+        currentMinTime = startTime;
+        currentMaxTime = endTime;
+
+        generateHeatMap();
+
+        updateTimeRange();
+
+
+        d3.select("#showTimeTable").html("");
+        for (var i = startTime; i <= endTime; i=i+3600000) {
+            var iteratedDate = new Date(i);
+            d3.select("#showTimeTable")
+                    .append("td")
+                    .classed("time", true)
+                    .append("span")
+                    .html(getFormattedTime(iteratedDate.getHours(),iteratedDate.getMinutes()));
         }
 
-        d3.select("#showTimeTable").html("<td><span id='startTime'>" + startHour + "</span></td><td><input type='range' oninput='setHour(this.value)' onchange='setHour(this.value)' step='1' id='timeRange' min='"+ startHour + "'' max='" + endHour +"'></td><td><span id='endTime'>" + endHour + "</span></td>");
+        $("#slider-range").slider({
+            range: true,
+            min: startTime,
+            max: endTime,
+            step: 1,
+            values: [startTime, endTime],
+            slide: function (e, ui) {
+
+                currentMinTime = ui.values[0];
+                currentMaxTime = ui.values[1];
+
+                generateHeatMap();
+
+                updateTimeRange();
+            }
+        });
     }
 
-    function generateHeatMap(){
+    function generateHeatMap() {
 
-        d3.select("#heatMap").remove();
+        d3.selectAll(".heatMapObject").remove();
 
-        d3.json("heatmap.json", function(error, json) {
+        d3.json("heatmap.json", function (error, json) {
             if (error) return console.warn(error);
             var heatMapData = json.heatMap;
+            var maxVisits = json.max;
 
-            heatMapData.forEach(function(d){
+            heatMapData.forEach(function (d) {
                 var visitStartTime = new Date(d.visitStartTime);
                 var visitEndTime = new Date(d.visitEndTime);
                 var coordinates = d.coordinates[0];
+                var color = "#00FF00";
 
-                if(visitStartTime.getHours() >= currentHour && visitStartTime.getHours() < currentHour+1 && visitStartTime.getDay() == currentDay){
+                if (visitStartTime >= currentMinTime && visitStartTime < currentMaxTime && visitStartTime.getDay() == currentDay) {
+
+                    if(coordinates.visits > (0.75 * maxVisits)){
+                        color = "#FF0000";
+                    } else if(coordinates.visits < (0.75 * maxVisits) && coordinates.visits > (0.25 * maxVisits)) {
+
+                    } else if(coordinates.visits < (0.25 * maxVisits)){
+                        color = "#0000FF";
+                    }
+
                     container.append("g")
-                    .attr("id","heatMap")
-                    .append("circle")
-                    .attr("cx", coordinates.X)
-                    .attr("cy", coordinates.Y)
-                    .attr("r", coordinates.visits)
-                    .attr("fill-opacity","0.4")
-                    .style("fill","red");
-                    // console.log("currentDay : " + currentDay + "currentHour : " + currentHour);
-                    // console.log("visitDay : " + visitStartTime.getDay() + "visitStartTime : " + visitStartTime.getHours());
+                            .classed("heatMapObject",true)
+                            .append("circle")
+                            .attr("cx", coordinates.X)
+                            .attr("cy", coordinates.Y)
+                            .attr("r", 0.5 * coordinates.visits)
+                            .attr("fill-opacity", "0.03")
+                            .style("fill", color);
+
                 } else {
-                    // console.log("currentDay : " + currentDay + "currentHour : " + currentHour);
-                    // console.log("visitDay : " + visitStartTime.getDay() + "visitStartTime : " + visitStartTime.getHours());
+                    // console.log("NOT THERE->visitDay : " + visitStartTime.getDay() + "visitStartTime : " + visitStartTime.getHours());
                 }
             });
         });
     }
-</script>
 
+    function updateTimeRange() {
+        var currentMinHour = new Date(currentMinTime);
+        var currentMaxHour = new Date(currentMaxTime);
+
+        $('.slider-time').html(getFormattedTime(currentMinHour.getHours(),currentMinHour.getMinutes()));
+        $('.slider-time2').html(getFormattedTime(currentMaxHour.getHours(),currentMaxHour.getMinutes()));
+    }
+
+    function getFormattedTime(hourOfTheDay,mins){
+        var displayedHour = 0;
+
+        if (hourOfTheDay > 0 && hourOfTheDay <= 12) {
+            if(hourOfTheDay.toString().length == 1){
+                displayedHour = "0" + hourOfTheDay;
+            } else {
+                displayedHour = hourOfTheDay;
+            }
+            if(mins != null){
+                displayedHour = displayedHour + ":" + mins;
+            }
+            return displayedHour + " AM";
+        } else {
+            if (hourOfTheDay == 24 || hourOfTheDay == 0) {
+                displayedHour = "00";
+                if(mins != null){
+                    displayedHour = displayedHour + ":" + mins;
+                }
+                return displayedHour + " AM";
+            } else {
+                var absoluteHour = Math.abs(12-hourOfTheDay).toString();
+
+                if(absoluteHour.length == 1){
+                    displayedHour = "0" + absoluteHour;
+                } else {
+                    displayedHour = absoluteHour;
+                }
+                if(mins != null){
+                    displayedHour = displayedHour + ":" + mins;
+                }
+                return displayedHour + " PM";
+            }
+        }
+    }
+</script>
 </html>
