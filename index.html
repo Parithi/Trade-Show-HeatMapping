@@ -11,13 +11,19 @@
 
 <body>
 
+<div id="visitsBox" class="displaybox txtcenter">50</div>
 <div id="legend">
-    <div class="txtcenter smalltext">Legend</div>
-
-
+    <div class="txtcenter smalltext heading">Legend</div>
+    <div id="legend-desc">
+        <table class="full-width">
+            <tr><td class="padd5"><div class="box redbackground"></div></td><td class="padd5"><span class="legendlabel txtcenter">more than 50 attendees</span></td></tr>
+            <tr><td class="padd5"><div class="box greenbackground"></div></td><td class="padd5"><span class="legendlabel txtcenter">25-50 attendees</span></td></tr>
+            <tr><td class="padd5"><div class="box bluebackground"></div></td><td class="padd5"><span class="legendlabel txtcenter">less than 25 attendees</span></td></tr>
+        </table>
+    </div>
     <div id="controls">
         <table id="tablecontrol" class="full-width">
-            <tr><td id="zoom_in" class="txtcenter control border-right">+</td><td onclick="zoomOut()" class="txtcenter control border-right">-</td><td onclick="startPlay()" class="txtcenter control">&#9658;</td></tr>
+            <tr><td id="zoom_in" class="txtcenter control zoomcontrol border-right">+</td><td class="txtcenter control zoomcontrol border-right">-</td><td id="playcontrol" class="txtcenter playcontrol control">&#9658;</td></tr>
         </table>
     </div>
 </div>
@@ -64,6 +70,9 @@
     var hoursCount = 0;
     var currentHourCount = 0;
     var maxVisits;
+    var showStartTime = 0;
+    var showEndTime = 0;
+    var playHandler;
 
     var margin = {
                 top: -5,
@@ -74,43 +83,28 @@
             width = 1000 - margin.left - margin.right,
             height = 1000 - margin.top - margin.bottom;
 
-    var zoom = d3.behavior.zoom()
-            .scaleExtent([1, 15])
-            .on("zoom", zoomed);
+    var zoom = d3.behavior.zoom().scaleExtent([1, 30]).on("zoom", zoomed);
 
-    var drag = d3.behavior.drag()
-            .origin(function (d) {
-                return d;
-            })
-            .on("dragstart", dragstarted)
-            .on("drag", dragged)
-            .on("dragend", dragended);
-
-    var svg = d3.select("#stage").append("svg")
-            .attr("width", "100%")
-            .attr("height", height + margin.top + margin.bottom)
-            .append("g")
-            .attr("id", "mapContainer")
-            // .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
-            .attr("transform", "translate(200,-500)")
-            .call(zoom);
-
-    var rect = svg.append("rect")
-            .attr("width", width)
-            .attr("height", height)
-            .style("fill", "none")
-            .style("pointer-events", "all");
-
-    var container = svg.append("g");
-
-    function dottype(d) {
-        d.x = +d.x;
-        d.y = +d.y;
-        return d;
-    }
 
     function zoomed() {
-        container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+        container.attr("transform",
+                "translate(" + zoom.translate() + ")" +
+                "scale(" + zoom.scale() + ")"
+        );
+    }
+
+    function interpolateZoom (translate, scale) {
+        var self = this;
+        return d3.transition().duration(350).tween("zoom", function () {
+            var iTranslate = d3.interpolate(zoom.translate(), translate),
+                    iScale = d3.interpolate(zoom.scale(), scale);
+            return function (t) {
+                zoom
+                        .scale(iScale(t))
+                        .translate(iTranslate(t));
+                zoomed();
+            };
+        });
     }
 
     function zoomClick() {
@@ -118,7 +112,7 @@
                 direction = 1,
                 factor = 0.2,
                 target_zoom = 1,
-                center = [width / 2, height / 2],
+                center = [width / 2, 1200-height / 2],
                 extent = zoom.scaleExtent(),
                 translate = zoom.translate(),
                 translate0 = [],
@@ -141,19 +135,43 @@
         interpolateZoom([view.x, view.y], view.k);
     }
 
+    d3.selectAll('.zoomcontrol').on('click', zoomClick);
+    d3.select('.playControl').on('click', handlePlay);
 
-    function dragstarted(d) {
-        d3.event.sourceEvent.stopPropagation();
-        d3.select(this).classed("dragging", true);
+    function showVisits(value){
+        $('#visitsBox').html(value);
+        $('#visitsBox').show();
+        $(document).on('mousemove', function(e){
+            $('#visitsBox').css({
+                left:  e.pageX + 10,
+                top:   e.pageY + 13
+            });
+        });
     }
 
-    function dragged(d) {
-        d3.select(this).attr("cx", d.x = d3.event.x).attr("cy", d.y = d3.event.y);
+    function hideVisits(){
+        $('#visitsBox').hide();
+        $(document).on('mousemove', function(e){
+            // do nothing
+        });
     }
 
-    function dragended(d) {
-        d3.select(this).classed("dragging", false);
-    }
+    var svg = d3.select("#stage").append("svg")
+            .attr("width", "100%")
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("id", "mapContainer")
+            // .attr("transform", "translate(" + margin.left + "," + margin.right + ")")
+            .attr("transform", "translate(200,-500)")
+            .call(zoom);
+
+    var rect = svg.append("rect")
+            .attr("width", width)
+            .attr("height", height)
+            .style("fill", "none")
+            .style("pointer-events", "all");
+
+    var container = svg.append("g");
 
     generateDateline();
 
@@ -250,7 +268,6 @@
     function loadHeatMapJSON(){
         d3.json("heatmap.json", function(data) {
             startDrawing();
-            startPlay();
         });
     }
 
@@ -303,20 +320,21 @@
                         .html(format(startDay));
 
                 if (startDay.getDay() == currentDay) {
-                    generateTimeLine(d.startDateTime, d.endDateTime,interval);
+                    generateTimeLine(d.startDateTime, d.endDateTime);
                     setColorToId("day", startDay.getDay());
                 }
             });
         });
     }
 
-    function generateTimeLine(startTime, endTime, currentHourCount) {
-        console.log("Generated Timeline");
-
+    function generateTimeLine(startTime, endTime) {
         // d3.select("#showTimeTable").html("<td><span id='startTime'>" + startHour + "</span></td><td><input type='range' oninput='setHour(this.value)' onchange='setHour(this.value)' step='1' id='timeRange' min='"+ startHour + "'' max='" + endHour +"'></td><td><span id='endTime'>" + endHour + "</span></td>");
 
         currentMinTime = startTime;
         currentMaxTime = endTime;
+
+        showStartTime = startTime;
+        showEndTime = endTime;
 
         generateHeatMap();
 
@@ -336,18 +354,19 @@
 
         $("#slider-range").slider({
             range: true,
-            min: startTime,
-            max: endTime,
+            min: showStartTime,
+            max: showEndTime,
             step: 1,
-            values: [startTime + (currentHourCount * 3600000), startTime + ((currentHourCount * 3600000) + 3600000)],
+            values: [startTime, startTime + 3600000],
             slide: function (e, ui) {
 
                 currentMinTime = ui.values[0];
                 currentMaxTime = ui.values[1];
 
-                generateHeatMap();
-
                 updateTimeRange();
+            },
+            change: function (e, ui){
+                generateHeatMap();
             }
         });
 
@@ -383,7 +402,11 @@
                             .append("circle")
                             .attr("cx", coordinates.X)
                             .attr("cy", coordinates.Y)
-//                            .attr("r", 0.5 * coordinates.visits)
+                            .on("mouseover", function(d){
+                                showVisits(coordinates.visits);
+                            })
+                            .on("mouseout",hideVisits)
+                            //.attr("r", 0.5 * coordinates.visits)
                             .attr("r", 5)
                             .attr("fill-opacity", "0.03")
                             .style("fill", color);
@@ -438,11 +461,49 @@
         }
     }
 
+    function handlePlay(){
+        if(hoursCount > 0){
+            if(this.id === 'playcontrol'){
+                $("#" + this.id).attr('id','pausecontrol');
+                $("#" + this.id).html("||");
+                startPlay();
+            } else {
+                $("#" + this.id).html("&#9658;");
+                $("#" + this.id).attr('id','playcontrol');
+                pausePlay();
+            }
+        } else {
+            alert("Please select date");
+        }
+    }
+
     function startPlay(){
-        console.log("Running this for : " +  currentHourCount);
-//        setTimeout(startPlay, 4000);
-//        generateTimeLine(currentMinTime,currentMaxTime,currentHourCount);
-//        currentHourCount++;
+
+        if(currentHourCount == hoursCount - 1){
+            currentHourCount = 0;
+        }
+
+        console.log("Running ; " + currentHourCount + " -- " + hoursCount);
+
+        currentMinTime = showStartTime + (currentHourCount * 3600000);
+        currentMaxTime = showStartTime + ((currentHourCount * 3600000) + 3600000);
+        updateTimeRange();
+        generateHeatMap();
+
+        $("#slider-range").slider({
+            range: true,
+            min: showStartTime,
+            max: showEndTime,
+            step: 1,
+            values: [showStartTime + (currentHourCount * 3600000), showStartTime + ((currentHourCount * 3600000) + 3600000)],
+        });
+
+        currentHourCount++;
+        playHandler = setTimeout(startPlay, 4000);
+    }
+
+    function pausePlay(){
+        clearTimeout(playHandler);
     }
 </script>
 </html>

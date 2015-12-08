@@ -10,7 +10,7 @@ dl, dt, dd, ol, ul, li,
 fieldset, form, label, legend,
 table, caption, tbody, tfoot, thead, tr, th, td,
 article, aside, canvas, details, embed, 
-figure, figcaption, footer, header, hgroup, 
+figure, figcaption, footer, header,
 menu, nav, output, ruby, section, summary,
 time, mark, audio, video {
 	margin: 0;
@@ -22,7 +22,7 @@ time, mark, audio, video {
 }
 /* HTML5 display-role reset for older browsers */
 article, aside, details, figcaption, figure, 
-footer, header, hgroup, menu, nav, section {
+footer, header, menu, nav, section {
 	display: block;
 }
 body {
@@ -269,7 +269,7 @@ body, span{
 
 #legend {
     width : 200px;
-    height: 200px;
+    height: 150px;
     position: fixed;
     top : 100px;
     right : 10px;
@@ -310,4 +310,47 @@ body, span{
 
 .border-right{
     border-right: 1px solid #aaaaff;
+}
+
+.heading{
+    font-weight: bold;
+    padding: 10px;
+}
+
+.box {
+    width: 10px;
+    height: 10px;
+}
+
+.redbackground {
+    background: #FF0000;
+}
+
+
+.greenbackground {
+    background: #00FF00;
+}
+
+
+.bluebackground {
+    background: #0000FF;
+}
+
+.legendlabel {
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.padd5{
+    padding: 5px;
+}
+
+.displaybox {
+    padding: 10px;
+    background: #eeeeff;
+    width: 30px;
+    height: 10px;
+    position: absolute;
+    font-size: 12px;
+    border: 1px solid #aaaaff;
 }
