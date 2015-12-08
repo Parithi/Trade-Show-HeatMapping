@@ -3,32 +3,44 @@
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/d3.min.js"></script>
     <script type="text/javascript" src="js/jquery-ui.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <title>Compusystems - Heatmapping</title>
     <link rel="stylesheet" type="text/css" href="css/styles.css">
 </head>
 
 <body>
-<div id="header">
-    <div class="left padd30">
-        Heatmapping - Expo Hall
-    </div>
-    <div class="right padd30">
-        GreenBuild 2015
+
+<div id="legend">
+    <div class="txtcenter smalltext">Legend</div>
+
+
+    <div id="controls">
+        <table id="tablecontrol" class="full-width">
+            <tr><td id="zoom_in" class="txtcenter control border-right">+</td><td onclick="zoomOut()" class="txtcenter control border-right">-</td><td onclick="startPlay()" class="txtcenter control">&#9658;</td></tr>
+        </table>
     </div>
 </div>
+<div id="header">
+    <div class="left padd30">
+        Heatmapping - Expo Hall (GreenBuild 2015)
+    </div>
+    <div class="right padd30">
+    </div>
+</div>
+
 <div id="content">
     <div id="stage"></div>
     <div id="exhibitorList"></div>
 </div>
+
 <div id="footer">
     <table id="sliderTable" class="fulltable hidden">
         <tr>
             <td>
                 <div id="time-range">
-                    <p>Time Range: <span class="slider-time">Choose the Date from below to get Started. Then select Start Time</span> - <span
-                            class="slider-time2">End Time</span>
-
+                    <p><span id="messageArea">- - - Loading - - </span><span class="slider-time"></span> - <span
+                            class="slider-time2"></span>
                     </p>
 
                     <div class="sliders_step1">
@@ -49,6 +61,9 @@
     var currentDay = 0;
     var currentMinTime = 0;
     var currentMaxTime = 0;
+    var hoursCount = 0;
+    var currentHourCount = 0;
+    var maxVisits;
 
     var margin = {
                 top: -5,
@@ -97,6 +112,35 @@
     function zoomed() {
         container.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
     }
+
+    function zoomClick() {
+        var clicked = d3.event.target,
+                direction = 1,
+                factor = 0.2,
+                target_zoom = 1,
+                center = [width / 2, height / 2],
+                extent = zoom.scaleExtent(),
+                translate = zoom.translate(),
+                translate0 = [],
+                l = [],
+                view = {x: translate[0], y: translate[1], k: zoom.scale()};
+
+        d3.event.preventDefault();
+        direction = (this.id === 'zoom_in') ? 1 : -1;
+        target_zoom = zoom.scale() * (1 + factor * direction);
+
+        if (target_zoom < extent[0] || target_zoom > extent[1]) { return false; }
+
+        translate0 = [(center[0] - view.x) / view.k, (center[1] - view.y) / view.k];
+        view.k = target_zoom;
+        l = [translate0[0] * view.k + view.x, translate0[1] * view.k + view.y];
+
+        view.x += center[0] - l[0];
+        view.y += center[1] - l[1];
+
+        interpolateZoom([view.x, view.y], view.k);
+    }
+
 
     function dragstarted(d) {
         d3.event.sourceEvent.stopPropagation();
@@ -196,10 +240,31 @@
 
 
     $(document).ready(function () {
-        startDrawing();
+        loadData();
     });
 
+    function loadData(){
+        loadMapsJSON();
+    }
+
+    function loadHeatMapJSON(){
+        d3.json("heatmap.json", function(data) {
+            startDrawing();
+            startPlay();
+        });
+    }
+
+    function loadMapsJSON(){
+        d3.json("DynamicMapsJson.json", function(data) {
+            loadHeatMapJSON();
+        });
+    }
+
     function startDrawing() {
+        $("#messageArea").html("Time range : ");
+
+        $('.slider-time').html("Select Date");
+        $('.slider-time2').html("From Below");
         drawBooths();
     }
 
@@ -221,6 +286,7 @@
 
         d3.json("heatmap.json", function (error, json) {
             if (error) return console.warn(error);
+
             var showDays = json.showDays;
             var interval = json.interval;
 
@@ -244,7 +310,7 @@
         });
     }
 
-    function generateTimeLine(startTime, endTime, interval) {
+    function generateTimeLine(startTime, endTime, currentHourCount) {
         console.log("Generated Timeline");
 
         // d3.select("#showTimeTable").html("<td><span id='startTime'>" + startHour + "</span></td><td><input type='range' oninput='setHour(this.value)' onchange='setHour(this.value)' step='1' id='timeRange' min='"+ startHour + "'' max='" + endHour +"'></td><td><span id='endTime'>" + endHour + "</span></td>");
@@ -265,6 +331,7 @@
                     .classed("time", true)
                     .append("span")
                     .html(getFormattedTime(iteratedDate.getHours(),iteratedDate.getMinutes()));
+            hoursCount++;
         }
 
         $("#slider-range").slider({
@@ -272,7 +339,7 @@
             min: startTime,
             max: endTime,
             step: 1,
-            values: [startTime, endTime],
+            values: [startTime + (currentHourCount * 3600000), startTime + ((currentHourCount * 3600000) + 3600000)],
             slide: function (e, ui) {
 
                 currentMinTime = ui.values[0];
@@ -283,6 +350,7 @@
                 updateTimeRange();
             }
         });
+
     }
 
     function generateHeatMap() {
@@ -292,7 +360,7 @@
         d3.json("heatmap.json", function (error, json) {
             if (error) return console.warn(error);
             var heatMapData = json.heatMap;
-            var maxVisits = json.max;
+            maxVisits = json.max;
 
             heatMapData.forEach(function (d) {
                 var visitStartTime = new Date(d.visitStartTime);
@@ -315,7 +383,8 @@
                             .append("circle")
                             .attr("cx", coordinates.X)
                             .attr("cy", coordinates.Y)
-                            .attr("r", 0.5 * coordinates.visits)
+//                            .attr("r", 0.5 * coordinates.visits)
+                            .attr("r", 5)
                             .attr("fill-opacity", "0.03")
                             .style("fill", color);
 
@@ -338,36 +407,42 @@
         var displayedHour = 0;
 
         if (hourOfTheDay > 0 && hourOfTheDay <= 12) {
-            if(hourOfTheDay.toString().length == 1){
-                displayedHour = "0" + hourOfTheDay;
-            } else {
-                displayedHour = hourOfTheDay;
-            }
+            displayedHour = getPluralTime(hourOfTheDay);
             if(mins != null){
-                displayedHour = displayedHour + ":" + mins;
+                displayedHour = displayedHour + ":" + getPluralTime(mins);
             }
             return displayedHour + " AM";
         } else {
             if (hourOfTheDay == 24 || hourOfTheDay == 0) {
                 displayedHour = "00";
                 if(mins != null){
-                    displayedHour = displayedHour + ":" + mins;
+                    displayedHour = displayedHour + ":" + getPluralTime(mins);
                 }
                 return displayedHour + " AM";
             } else {
                 var absoluteHour = Math.abs(12-hourOfTheDay).toString();
-
-                if(absoluteHour.length == 1){
-                    displayedHour = "0" + absoluteHour;
-                } else {
-                    displayedHour = absoluteHour;
-                }
+                displayedHour = getPluralTime(absoluteHour);
                 if(mins != null){
-                    displayedHour = displayedHour + ":" + mins;
+                    displayedHour = displayedHour + ":" + getPluralTime(mins);
                 }
                 return displayedHour + " PM";
             }
         }
+    }
+
+    function getPluralTime(timeValue){
+        if(timeValue.toString().length == 1){
+            return "0" + timeValue;
+        } else {
+            return timeValue;
+        }
+    }
+
+    function startPlay(){
+        console.log("Running this for : " +  currentHourCount);
+//        setTimeout(startPlay, 4000);
+//        generateTimeLine(currentMinTime,currentMaxTime,currentHourCount);
+//        currentHourCount++;
     }
 </script>
 </html>

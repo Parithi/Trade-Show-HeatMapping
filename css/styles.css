@@ -44,7 +44,7 @@ table {
 	border-spacing: 0;
 }
 
-body {
+body, span{
 	font-family: 'Varela Round', sans-serif;
 }
 
@@ -265,4 +265,49 @@ body {
 
 .heatMapObject{
     alpha:0.2;
+}
+
+#legend {
+    width : 200px;
+    height: 200px;
+    position: fixed;
+    top : 100px;
+    right : 10px;
+    border: 1px solid #aaaaff;
+    background: #eeeeff;
+}
+
+.smalltext{
+    font-size: 12px;
+}
+
+.legendtext {
+    font-size: 10px;
+}
+
+.full-width{
+    width:100%;
+}
+
+.control{
+    font-size : 28px;
+    font-weight: bold;
+    padding: 8px;
+    cursor: hand;
+    color: #6666ff;
+    font-family: "Arial";
+}
+
+.control:hover{
+    background : #ddddff;
+}
+
+#tablecontrol{
+    border-top: 1px solid #aaaaff;
+    position:absolute;
+    bottom: 0px;
+}
+
+.border-right{
+    border-right: 1px solid #aaaaff;
 }
