@@ -16,16 +16,19 @@
     <div class="txtcenter smalltext heading">Legend</div>
     <div id="legend-desc">
         <table class="full-width">
-            <tr><td class="padd5"><div class="box redbackground"></div></td><td class="padd5"><span class="legendlabel txtcenter">more than 50 attendees</span></td></tr>
-            <tr><td class="padd5"><div class="box greenbackground"></div></td><td class="padd5"><span class="legendlabel txtcenter">25-50 attendees</span></td></tr>
-            <tr><td class="padd5"><div class="box bluebackground"></div></td><td class="padd5"><span class="legendlabel txtcenter">less than 25 attendees</span></td></tr>
+            <tr><div id="legend0" class="legendlabel txtcenter smallheader"></div><br/></tr>
+            <tr><td class="padd5"><div class="box redbackground"></div></td><td class="padd5"><span id="legend1" class="legendlabel txtcenter"></span></td></tr>
+            <tr><td class="padd5"><div class="box yellowbackground"></div></td><td class="padd5"><span id="legend2" class="legendlabel txtcenter"></span></td></tr>
+            <tr><td class="padd5"><div class="box greenbackground"></div></td><td class="padd5"><span id="legend3" class="legendlabel txtcenter"></span></td></tr>
+            <tr><td class="padd5"><div class="box bluebackground"></div></td><td class="padd5"><span id="legend4" class="legendlabel txtcenter"></span></td></tr>
         </table>
     </div>
-    <div id="controls">
-        <table id="tablecontrol" class="full-width">
-            <tr><td id="zoom_in" class="txtcenter control zoomcontrol border-right">+</td><td class="txtcenter control zoomcontrol border-right">-</td><td id="playcontrol" class="txtcenter playcontrol control">&#9658;</td></tr>
-        </table>
-    </div>
+</div>
+
+<div id="controls">
+    <table id="tablecontrol" class="full-width">
+        <tr><td id="zoom_in" class="txtcenter control zoomcontrol border-right">+</td><td class="txtcenter control zoomcontrol border-right">-</td><td id="playcontrol" class="txtcenter playcontrol control">&#9658;</td></tr>
+    </table>
 </div>
 <div id="header">
     <div class="left padd30">
@@ -73,6 +76,7 @@
     var showStartTime = 0;
     var showEndTime = 0;
     var playHandler;
+    var visitsMap = {};
 
     var margin = {
                 top: -5,
@@ -134,6 +138,8 @@
 
         interpolateZoom([view.x, view.y], view.k);
     }
+
+    $("#legend").hide();
 
     d3.selectAll('.zoomcontrol').on('click', zoomClick);
     d3.select('.playControl').on('click', handlePlay);
@@ -357,7 +363,7 @@
             min: showStartTime,
             max: showEndTime,
             step: 1,
-            values: [startTime, startTime + 3600000],
+            values: [showStartTime, showEndTime],
             slide: function (e, ui) {
 
                 currentMinTime = ui.values[0];
@@ -373,13 +379,13 @@
     }
 
     function generateHeatMap() {
-
+        visitsMap = {};
         d3.selectAll(".heatMapObject").remove();
 
         d3.json("heatmap.json", function (error, json) {
             if (error) return console.warn(error);
             var heatMapData = json.heatMap;
-            maxVisits = json.max;
+            maxVisits = 0;
 
             heatMapData.forEach(function (d) {
                 var visitStartTime = new Date(d.visitStartTime);
@@ -389,11 +395,23 @@
 
                 if (visitStartTime >= currentMinTime && visitStartTime < currentMaxTime && visitStartTime.getDay() == currentDay) {
 
-                    if(coordinates.visits > (0.75 * maxVisits)){
-                        color = "#FF0000";
-                    } else if(coordinates.visits < (0.75 * maxVisits) && coordinates.visits > (0.25 * maxVisits)) {
+                    if(visitsMap[coordinates.name]){
+                        visitsMap[coordinates.name] = visitsMap[coordinates.name] + coordinates.visits;
+                    } else {
+                        visitsMap[coordinates.name] = coordinates.visits;
+                    }
 
-                    } else if(coordinates.visits < (0.25 * maxVisits)){
+                    if(maxVisits < visitsMap[coordinates.name]){
+                        maxVisits = visitsMap[coordinates.name];
+                    }
+
+                    if(visitsMap[coordinates.name] > (0.75 * maxVisits)){
+                        color = "#FF0000";
+                    } else if(visitsMap[coordinates.name] > (0.50 * maxVisits) && visitsMap[coordinates.name] < (0.75 * maxVisits)) {
+                        color = "#FFA700";
+                    } else if(visitsMap[coordinates.name] > (0.25 * maxVisits) && visitsMap[coordinates.name] < (0.50 * maxVisits)){
+                        color = "#00FF00";
+                    } else if(visitsMap[coordinates.name] < (0.25 * maxVisits)){
                         color = "#0000FF";
                     }
 
@@ -403,7 +421,7 @@
                             .attr("cx", coordinates.X)
                             .attr("cy", coordinates.Y)
                             .on("mouseover", function(d){
-                                showVisits(coordinates.visits);
+                                showVisits(visitsMap[coordinates.name]);
                             })
                             .on("mouseout",hideVisits)
                             //.attr("r", 0.5 * coordinates.visits)
@@ -411,10 +429,13 @@
                             .attr("fill-opacity", "0.03")
                             .style("fill", color);
 
-                } else {
-                    // console.log("NOT THERE->visitDay : " + visitStartTime.getDay() + "visitStartTime : " + visitStartTime.getHours());
                 }
             });
+
+            setLegends();
+
+            console.log(visitsMap);
+
         });
     }
 
@@ -504,6 +525,19 @@
 
     function pausePlay(){
         clearTimeout(playHandler);
+    }
+
+    function setLegends(){
+        if(maxVisits > 0){
+            $("#legend0").html("Cummulative Max Visits : " + maxVisits);
+            $("#legend1").html("more than " + Math.round(maxVisits * 0.75) + " visits");
+            $("#legend2").html(Math.round(maxVisits * 0.50) + "-" + Math.round(maxVisits * 0.75) + " visits");
+            $("#legend3").html(Math.round(maxVisits * 0.25) + "-" + Math.round(maxVisits * 0.50) + " visits");
+            $("#legend4").html("less than " + Math.round(maxVisits * 0.25) + " visits");
+            $("#legend").fadeIn();
+        } else {
+            $("#legend").fadeOut();
+        }
     }
 </script>
 </html>

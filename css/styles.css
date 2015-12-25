@@ -298,14 +298,18 @@ body, span{
     font-family: "Arial";
 }
 
-.control:hover{
-    background : #ddddff;
+#controls {
+    width : 200px;
+    position: fixed;
+    top : 100px;
+    left : 10px;
+    border: 1px solid #aaaaff;
+    background: #eeeeff;
 }
 
-#tablecontrol{
-    border-top: 1px solid #aaaaff;
-    position:absolute;
-    bottom: 0px;
+
+.control:hover{
+    background : #ddddff;
 }
 
 .border-right{
@@ -331,13 +335,16 @@ body, span{
     background: #00FF00;
 }
 
-
 .bluebackground {
     background: #0000FF;
 }
 
+.yellowbackground {
+    background: #FFA700;
+}
+
 .legendlabel {
-    font-size: 14px;
+    font-size: 12px;
     vertical-align: middle;
 }
 
@@ -347,10 +354,14 @@ body, span{
 
 .displaybox {
     padding: 10px;
-    background: #eeeeff;
+    background: #FFFFE0;
     width: 30px;
     height: 10px;
     position: absolute;
     font-size: 12px;
-    border: 1px solid #aaaaff;
+    border: 1px solid #FFA700;
+}
+
+.smallheader {
+    font-size: 11px;
 }
